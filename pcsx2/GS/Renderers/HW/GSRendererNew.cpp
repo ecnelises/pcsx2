@@ -537,9 +537,11 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 	const bool blend_mix1 = !!(blend_flag & BLEND_MIX1);
 	const bool blend_mix2 = !!(blend_flag & BLEND_MIX2);
 	const bool blend_mix3 = !!(blend_flag & BLEND_MIX3);
+	const bool blend_mix4 = !!(blend_flag & BLEND_MIX4);
 	bool blend_mix = (blend_mix1 || blend_mix2 || blend_mix3);
 
 	const bool alpha_c2_high_one = (ALPHA.C == 2 && ALPHA.FIX > 128u);
+	const bool alpha_c0_high_min_one = (ALPHA.C == 0 && GetAlphaMinMax().min > 128);
 	const bool alpha_c0_high_max_one = (ALPHA.C == 0 && GetAlphaMinMax().max > 128);
 
 	// Warning no break on purpose
@@ -734,10 +736,16 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 		else if (blend_mix)
 		{
 			m_conf.blend = {blend_index, ALPHA.FIX, ALPHA.C == 2, false, true};
-			m_conf.ps.alpha_clamp = 1;
+			m_conf.ps.blend_mix = 1;
 
 			if (blend_mix1)
 			{
+				if (blend_mix4 && (alpha_c2_high_one || alpha_c0_high_min_one))
+				{
+					m_conf.blend = {ALPHA.C == 0 ? 9u : 15u, ALPHA.FIX - 0x80u, ALPHA.C == 2, false, true};
+					m_conf.ps.blend_mix = 2;
+				}
+
 				m_conf.ps.blend_a = 0;
 				m_conf.ps.blend_b = 2;
 				m_conf.ps.blend_d = 2;

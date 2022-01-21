@@ -1049,7 +1049,7 @@ void ps_blend(inout vec4 Color, float As)
 		#endif
 
 		// As/Af clamp alpha for Blend mix
-		#if PS_ALPHA_CLAMP
+		#if PS_BLEND_MIX == 1
 				C = min(C, 1.0f);
 		#endif
 
@@ -1138,7 +1138,7 @@ void main()
 	#endif
 
   // Must be done before alpha correction
-  float alpha_blend = C.a / 128.0f;
+  float alpha_blend = C.a;
 
   // Correct the ALPHA value based on the output format
 #if (PS_DFMT == FMT_16)
@@ -1163,7 +1163,7 @@ void main()
 
 #else
 
-	ps_blend(C, alpha_blend);
+	ps_blend(C, alpha_blend / 128.0f);
 
   ps_dither(C.rgb);
 
@@ -1174,7 +1174,11 @@ void main()
 
 	o_col0 = C / 255.0f;
 #ifndef DISABLE_DUAL_SOURCE
-	o_col1 = vec4(alpha_blend);
+	// Substract As - 1 for Blend mix4
+#if PS_BLEND_MIX == 2
+	alpha_blend -= 128.0f;
+#endif
+	o_col1 = vec4(alpha_blend  / 128.0f);
 #endif
 
 #if PS_ZCLAMP

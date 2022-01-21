@@ -711,7 +711,7 @@ void ps_blend(inout vec4 Color, float As)
 #endif
 
     // As/Af clamp alpha for Blend mix
-#if PS_ALPHA_CLAMP
+#if PS_BLEND_MIX == 1
     C = min(C, float(1.0f));
 #endif
 
@@ -827,7 +827,7 @@ void ps_main()
 #endif
 
     // Must be done before alpha correction
-    float alpha_blend = C.a / 128.0f;
+    float alpha_blend = C.a;
 
     // Correct the ALPHA value based on the output format
 #if (PS_DFMT == FMT_16)
@@ -854,7 +854,7 @@ void ps_main()
     return;
 #endif
 
-    ps_blend(C, alpha_blend);
+    ps_blend(C, alpha_blend / 128.0f);
 
     ps_dither(C.rgb);
 
@@ -863,8 +863,13 @@ void ps_main()
 
     ps_fbmask(C);
 
+    // Substract As - 1 for Blend mix4
+#if PS_BLEND_MIX == 2
+       alpha_blend -= 128.0f;
+#endif
+
     SV_Target0 = C / 255.0f;
-    SV_Target1 = vec4(alpha_blend);
+    SV_Target1 = vec4(alpha_blend / 128.0f);
 
 #if PS_ZCLAMP
 	gl_FragDepth = min(gl_FragCoord.z, MaxDepthPS);

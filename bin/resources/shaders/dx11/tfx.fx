@@ -49,7 +49,7 @@
 #define PS_BLEND_B 0
 #define PS_BLEND_C 0
 #define PS_BLEND_D 0
-#define PS_ALPHA_CLAMP 0
+#define PS_BLEND_MIX 0
 #define PS_PABE 0
 #define PS_DITHER 0
 #define PS_ZCLAMP 0
@@ -744,11 +744,11 @@ void ps_blend(inout float4 Color, float As, float2 pos_xy)
 
 		float3 A = (PS_BLEND_A == 0) ? Cs : ((PS_BLEND_A == 1) ? Cd : (float3)0.0f);
 		float3 B = (PS_BLEND_B == 0) ? Cs : ((PS_BLEND_B == 1) ? Cd : (float3)0.0f);
-		float C = (PS_BLEND_C == 0) ? As : ((PS_BLEND_C == 1) ? Ad : Af);
+		float  C = (PS_BLEND_C == 0) ? As : ((PS_BLEND_C == 1) ? Ad : Af);
 		float3 D = (PS_BLEND_D == 0) ? Cs : ((PS_BLEND_D == 1) ? Cd : (float3)0.0f);
 
 		// As/Af clamp alpha for Blend mix
-		if (PS_ALPHA_CLAMP)
+		if (PS_BLEND_MIX == 1)
 			C = min(C, (float)1.0f);
 
 		Color.rgb = (PS_BLEND_A == PS_BLEND_B) ? D : trunc(((A - B) * C) + D);
@@ -796,7 +796,7 @@ PS_OUTPUT ps_main(PS_INPUT input)
 	}
 
 	// Must be done before alpha correction
-	float alpha_blend = C.a / 128.0f;
+	float alpha_blend = C.a;
 
 	// Alpha correction
 	if (PS_DFMT == FMT_16)
@@ -810,7 +810,7 @@ PS_OUTPUT ps_main(PS_INPUT input)
 		if (C.a < A_one) C.a += A_one;
 	}
 
-	ps_blend(C, alpha_blend, input.p.xy);
+	ps_blend(C, alpha_blend / 128.0f, input.p.xy);
 
 	ps_dither(C.rgb, input.p.xy);
 
@@ -819,8 +819,12 @@ PS_OUTPUT ps_main(PS_INPUT input)
 
 	ps_fbmask(C, input.p.xy);
 
+	// Substract As - 1 for Blend mix4
+	if (PS_BLEND_MIX == 2)
+		alpha_blend -= 128.0f;
+
 	output.c0 = C / 255.0f;
-	output.c1 = (float4)(alpha_blend);
+	output.c1 = (float4)(alpha_blend / 128.0f);
 
 #if PS_ZCLAMP
 	output.depth = min(input.p.z, MaxDepthPS);
