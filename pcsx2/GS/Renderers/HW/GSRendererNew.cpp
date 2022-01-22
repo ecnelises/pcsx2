@@ -530,9 +530,6 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 	// HW blend can handle it on colclamp 1.
 	bool can_handle_hw_blend_clamp = !!(blend_flag & BLEND_CLAMP) && m_env.COLCLAMP.CLAMP;
 
-	if (can_handle_hw_blend_clamp)
-		fprintf(stderr, "Blend clamp\n");
-
 	if (blend_flag & BLEND_ZERO)
 		fprintf(stderr, "Blend zero\n");
 
@@ -713,6 +710,9 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 #endif
 	if (can_handle_hw_blend || can_handle_hw_blend_clamp)
 	{
+		if (sw_blending && can_handle_hw_blend_clamp)
+				fprintf(stderr, "Blend clamp optimization\n");
+
 		m_conf.blend = {blend_index, ALPHA.FIX, ALPHA.C == 2, false, false};
 		sw_blending  = false; // DATE_PRIMID
 	}
