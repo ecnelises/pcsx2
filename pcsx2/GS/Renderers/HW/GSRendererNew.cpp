@@ -530,6 +530,12 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 	// HW blend can handle it on colclamp 1.
 	bool can_handle_hw_blend_clamp = !!(blend_flag & BLEND_CLAMP) && m_env.COLCLAMP.CLAMP;
 
+	if (can_handle_hw_blend_clamp)
+		fprintf(stderr, "Blend clamp\n");
+
+	if (blend_flag & BLEND_ZERO)
+		fprintf(stderr, "Blend zero\n");
+
 	// Do the multiplication in shader for blending accumulation: Cs*As + Cd or Cs*Af + Cd
 	bool accumulation_blend = !!(blend_flag & BLEND_ACCU);
 
