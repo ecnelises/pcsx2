@@ -115,7 +115,9 @@ public:
 enum HWBlendFlags
 {
 	// A couple of flag to determine the blending behavior
-	BLEND_CD     = 0x10,  // Output is Cd, hw blend can handle it
+	BLEND_ZERO   = 0x4,   // Output is 0, hw blend can handle it
+	BLEND_CD     = 0x8,   // Output is Cd, hw blend can handle it
+	BLEND_CLAMP  = 0x10,  // HW blend can handle it on colclamp 1
 	BLEND_MIX1   = 0x20,  // Mix of hw and sw, do Cs*F or Cs*As in shader
 	BLEND_MIX2   = 0x40,  // Mix of hw and sw, do Cs*(As + 1) or Cs*(F + 1) in shader
 	BLEND_MIX3   = 0x80,  // Mix of hw and sw, do Cs*(1 - As) or Cs*(1 - F) in shader

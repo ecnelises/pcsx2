@@ -524,8 +524,11 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 	u8 blend_index = u8(((ALPHA.A * 3 + ALPHA.B) * 3 + ALPHA.C) * 3 + ALPHA.D);
 	const int blend_flag = g_gs_device->GetBlendFlags(blend_index);
 
-	// HW blend can handle Cd output.
-	bool color_dest_blend = !!(blend_flag & BLEND_CD);
+	// HW blend can handle it, output is 0 or Cd.
+	bool can_handle_hw_blend = !!(blend_flag & (BLEND_ZERO | BLEND_CD));
+
+	// HW blend can handle it on colclamp 1.
+	bool can_handle_hw_blend_clamp = !!(blend_flag & BLEND_CLAMP) && m_env.COLCLAMP.CLAMP;
 
 	// Do the multiplication in shader for blending accumulation: Cs*As + Cd or Cs*Af + Cd
 	bool accumulation_blend = !!(blend_flag & BLEND_ACCU);
@@ -625,7 +628,7 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 			free_colclip = blend_non_recursive;
 
 		GL_DBG("COLCLIP Info (Blending: %u/%u/%u/%u, OVERLAP: %d)", ALPHA.A, ALPHA.B, ALPHA.C, ALPHA.D, m_prim_overlap);
-		if (color_dest_blend)
+		if (can_handle_hw_blend)
 		{
 			// No overflow, disable colclip.
 			GL_INS("COLCLIP mode DISABLED");
@@ -671,10 +674,11 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 			if (g_gs_device->Features().texture_barrier)
 			{
 				// Disable hw/sw blend and do pure sw blend with reading the framebuffer.
-				color_dest_blend   = false;
-				accumulation_blend = false;
-				blend_mix          = false;
-				m_conf.ps.pabe     = 1;
+				can_handle_hw_blend       = false;
+				can_handle_hw_blend_clamp = false;
+				accumulation_blend        = false;
+				blend_mix                 = false;
+				m_conf.ps.pabe            = 1;
 
 				// HDR mode should be disabled when doing sw blend, swap with sw colclip.
 				if (m_conf.ps.hdr)
@@ -701,11 +705,10 @@ void GSRendererNew::EmulateBlending(bool& DATE_PRIMID, bool& DATE_BARRIER)
 	GL_INS("BLEND_INFO: %u/%u/%u/%u. Clamp:%u. Prim:%d number %u (drawlist %u) (sw %d)",
 		ALPHA.A, ALPHA.B, ALPHA.C, ALPHA.D, m_env.COLCLAMP.CLAMP, m_vt.m_primclass, m_vertex.next, m_drawlist.size(), sw_blending);
 #endif
-	if (color_dest_blend)
+	if (can_handle_hw_blend || can_handle_hw_blend_clamp)
 	{
-		// Blend output will be Cd, no need to set Af.
-		m_conf.blend = {blend_index, 0, ALPHA.C == 2, false, false};
-		sw_blending = false; // DATE_PRIMID
+		m_conf.blend = {blend_index, ALPHA.FIX, ALPHA.C == 2, false, false};
+		sw_blending  = false; // DATE_PRIMID
 	}
 	else if (sw_blending)
 	{
